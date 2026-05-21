@@ -9,6 +9,20 @@ import httpx
 from azul_runner import Job, State, settings
 
 logger = logging.getLogger(__name__)
+MOBSF_SUPPORTED_EXTENSIONS = {
+    "apk",
+    "apks",
+    "xapk",
+    "aab",
+    "jar",
+    "aar",
+    "so",
+    "ipa",
+    "dylib",
+    "a",
+    "zip",
+    "appx",
+}
 
 
 def _detect_file_extension(file_format: str) -> Optional[str]:
@@ -29,10 +43,23 @@ def _detect_file_extension(file_format: str) -> Optional[str]:
     if "/" in file_format:
         extension = file_format.split("/")[-1].lower()
         # Validate it's a supported MobSF format
-        if extension in ("apk", "apks", "xapk", "aab", "jar", "aar", "so", "ipa", "dylib", "a", "zip", "appx"):
+        if extension in MOBSF_SUPPORTED_EXTENSIONS:
             return f".{extension}"
 
     return None
+
+
+def _feature_values(job: Job, name: str) -> list[str]:
+    """Return decoded incoming Azul feature values for the given feature name."""
+    values = []
+    for feature in job.event.entity.features:
+        if feature.name != name:
+            continue
+        if hasattr(feature, "decode_value"):
+            values.append(feature.decode_value())
+        else:
+            values.append(feature.value)
+    return [str(value) for value in values if value]
 
 
 class MobSFError(RuntimeError):
@@ -56,7 +83,7 @@ def _check_error(resp: httpx.Response, context: str) -> Optional[State]:
     # Check for MobSF errors if the response is JSON
     # Only trigger on boolean True, not string values in "error" field
     # Handle both dict responses (most endpoints) and list responses (/tasks endpoint)
-    if resp.headers["content-type"].startswith("application/json"):
+    if resp.headers.get("content-type", "").startswith("application/json"):
         json_data = resp.json()
         if isinstance(json_data, dict) and json_data.get("error") is True:
             # Note that the JSON for /report/ does NOT seem to contain {'error': False, ...} if it succeeded,
@@ -105,15 +132,14 @@ class MobSF:
 
         except httpx.HTTPError as e:
             # Handle connection errors (e.g., DNS failure, refused connection)
-            if isinstance(e, httpx.ConnectError):
-                # Connection error: treat as file not found or network unavailable
+            if isinstance(e, httpx.RequestError):
                 logger.error(f"Network error checking existing scan: {e}")
-                return None
+                raise
             if hasattr(e, "response") and e.response and e.response.status_code == 404:
                 # File not found is an expected condition
                 return None
             logger.error(f"Error checking existing scan: {e}")
-            raise MobSFError(f"Error checking existing scan: {e}")
+            raise MobSFError(f"Error checking existing scan: {e}") from e
 
         return None
 
@@ -162,12 +188,15 @@ class MobSF:
                 logger.info(f"Scan in progress - latest status: {latest_status}")
                 return "in_progress"
 
-        except httpx.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             if hasattr(e, "response") and e.response and e.response.status_code == 400:
                 # 400 means no scan found
                 return None
-            logger.warning(f"Error checking scan logs: {e}")
-            return None
+            logger.error(f"MobSF error checking scan logs: {e}")
+            raise MobSFError(f"Error checking scan logs: {e}") from e
+        except httpx.RequestError as e:
+            logger.warning(f"Network error checking scan logs: {e}")
+            raise
 
         return None
 
@@ -216,26 +245,13 @@ class MobSF:
         # Step 3: No existing scan or report, need to upload file to MobSF
         logger.info("No existing scan found, uploading file to MobSF")
 
-        filenames = [f.value for f in job.event.entity.features if f.name == "filename"]
+        filenames = _feature_values(job, "filename")
         # MobSF accepts bare data-stream in file submission
         filename = sorted(filenames)[0] if filenames else "sample"
 
         # Ensure filename has a valid extension for MobSF
         # MobSF requires: APK, APKS, XAPK, AAB, JAR, AAR, SO, IPA, DYLIB, A, ZIP, APPX
-        if "." not in filename or filename.rsplit(".", 1)[1].lower() not in (
-            "apk",
-            "apks",
-            "xapk",
-            "aab",
-            "jar",
-            "aar",
-            "so",
-            "ipa",
-            "dylib",
-            "a",
-            "zip",
-            "appx",
-        ):
+        if "." not in filename or filename.rsplit(".", 1)[1].lower() not in MOBSF_SUPPORTED_EXTENSIONS:
             logger.warning(f"Filename '{filename}' missing valid extension, attempting to detect file type")
             file_format = getattr(job.event.entity, "file_format", None)
             # Handle file_format as bytes or string

@@ -1,7 +1,6 @@
-import pytest
 from azul_runner import DATA_HASH, FV, Event, EventData, JobResult, State
 
-from .common import BaseMobSFTest, load_test_data, make_fake_apk
+from .common import MOBSF_FAKE_APK_RECORD_URL, BaseMobSFTest, load_test_data, make_fake_apk
 
 
 class TestAndroid(BaseMobSFTest):
@@ -18,6 +17,9 @@ class TestAndroid(BaseMobSFTest):
             "target_sdk": "30",
             "main_activity": "com.test.app.MainActivity",
             "activities": ["com.test.app.MainActivity", "com.test.app.SecondActivity"],
+            "services": ["com.test.app.SyncService"],
+            "receivers": ["com.test.app.BootReceiver"],
+            "providers": ["com.test.app.DataProvider"],
             "exported_activities": ["com.test.app.MainActivity"],
             "permissions": {
                 "android.permission.INTERNET": {
@@ -94,7 +96,11 @@ class TestAndroid(BaseMobSFTest):
             "exported_activities": [FV("com.test.app.MainActivity")],
             "file_name": [FV("test.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "main_activity": [FV("com.test.app.MainActivity")],
+            "providers": [FV("com.test.app.DataProvider")],
+            "receivers": [FV("com.test.app.BootReceiver")],
+            "services": [FV("com.test.app.SyncService")],
             "manifest_findings": [FV("high: Backup Enabled - App data can be backed up")],
             "manifest_summary": [FV("High: 1, Warning: 0, Info: 0")],
             "min_version": [FV("21")],
@@ -138,7 +144,9 @@ class TestAndroid(BaseMobSFTest):
         )
         self.httpx_mock.add_response(method="POST", url="http://localhost/api/v1/report_json", json=full_apk_report)
         result = self.do_execution(
-            data_in=[("content", data)], config=self.PLUGIN_TO_TEST_CONFIG, no_multiprocessing=True
+            data_in=[("content", data)],
+            config=self.PLUGIN_TO_TEST_CONFIG,
+            no_multiprocessing=True,
         )
 
         # Expected features based on wildfire.json content
@@ -166,6 +174,7 @@ class TestAndroid(BaseMobSFTest):
             "detected_trackers": [FV(0)],
             "file_name": [FV("wildfire-test-apk-file.apk")],
             "file_size": [FV("1.38MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "main_activity": [FV("com.panw.panwapktest.MainActivity")],
             "manifest_findings": [
                 FV(
@@ -231,7 +240,9 @@ class TestAndroid(BaseMobSFTest):
             method="POST", url="http://localhost/api/v1/report_json", json=simple_perms_report
         )
         result = self.do_execution(
-            data_in=[("content", data)], config=self.PLUGIN_TO_TEST_CONFIG, no_multiprocessing=True
+            data_in=[("content", data)],
+            config=self.PLUGIN_TO_TEST_CONFIG,
+            no_multiprocessing=True,
         )
 
         expected_features = {
@@ -240,6 +251,7 @@ class TestAndroid(BaseMobSFTest):
             "bundle_id": [FV("com.simple.app")],
             "file_name": [FV("simple.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "permissions": [
                 FV("android.permission.CAMERA (dangerous): Camera - Camera access"),
@@ -292,7 +304,9 @@ class TestAndroid(BaseMobSFTest):
             method="POST", url="http://localhost/api/v1/report_json", json=string_activities_report
         )
         result = self.do_execution(
-            data_in=[("content", data)], config=self.PLUGIN_TO_TEST_CONFIG, no_multiprocessing=True
+            data_in=[("content", data)],
+            config=self.PLUGIN_TO_TEST_CONFIG,
+            no_multiprocessing=True,
         )
 
         expected_features = {
@@ -302,6 +316,7 @@ class TestAndroid(BaseMobSFTest):
             "exported_activities": [FV("Activity1"), FV("Activity2"), FV("Activity3")],
             "file_name": [FV("string.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],
@@ -357,6 +372,7 @@ class TestAndroid(BaseMobSFTest):
             "bundle_id": [FV("com.noexported.app")],
             "file_name": [FV("noexported.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],
@@ -417,6 +433,7 @@ class TestAndroid(BaseMobSFTest):
             "bundle_id": [FV("com.behavior.app")],
             "file_name": [FV("behavior.apk")],
             "file_size": [FV("2MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "version_name": [FV("1.0")],
             "version_code": [FV("1")],
             "min_version": [FV("21")],
@@ -480,6 +497,7 @@ class TestAndroid(BaseMobSFTest):
             "bundle_id": [FV("com.test.app")],
             "file_name": [FV("test.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],
@@ -529,7 +547,10 @@ class TestAndroid(BaseMobSFTest):
         )
         self.httpx_mock.add_response(method="POST", url="http://localhost/api/v1/report_json", json=log_report)
         result = self.do_execution(
-            data_in=[("content", data)], config=self.PLUGIN_TO_TEST_CONFIG, no_multiprocessing=True
+            data_in=[("content", data)],
+            config=self.PLUGIN_TO_TEST_CONFIG,
+            no_multiprocessing=True,
+            check_consistent_augmented_stream=False,
         )
 
         expected_features = {
@@ -538,6 +559,7 @@ class TestAndroid(BaseMobSFTest):
             "bundle_id": [FV("com.log.app")],
             "file_name": [FV("log.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],
@@ -604,6 +626,7 @@ class TestAndroid(BaseMobSFTest):
             "bundle_id": [FV("com.empty.app")],
             "file_name": [FV("empty.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],
@@ -659,6 +682,7 @@ class TestAndroid(BaseMobSFTest):
             "bundle_id": [FV("com.noperms.app")],
             "file_name": [FV("noperms.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],
@@ -713,6 +737,7 @@ class TestAndroid(BaseMobSFTest):
             "bundle_id": [FV("com.nomanifest.app")],
             "file_name": [FV("nomanifest.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],
@@ -770,6 +795,7 @@ class TestAndroid(BaseMobSFTest):
             "bundle_id": [FV("com.toponly.app")],
             "file_name": [FV("toponly.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "malware_permissions": [
                 FV("Top Malware: android.permission.READ_SMS"),
@@ -842,6 +868,7 @@ class TestAndroid(BaseMobSFTest):
             ],
             "file_name": [FV("network.apk")],
             "file_size": [FV("3MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],
@@ -906,6 +933,7 @@ class TestAndroid(BaseMobSFTest):
             ],
             "file_name": [FV("test.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],
@@ -968,6 +996,7 @@ class TestAndroid(BaseMobSFTest):
             "bundle_id": [FV("com.multicert.app")],
             "file_name": [FV("multicert.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "version_name": [FV("1.0")],
             "version_code": [FV("1")],
             "min_version": [FV("21")],
@@ -1038,6 +1067,7 @@ class TestAndroid(BaseMobSFTest):
             "bundle_id": [FV("com.multi.app")],
             "file_name": [FV("multi.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "manifest_findings": [
                 FV("high: Issue1 - Backup enabled"),
                 FV("info: Issue3 - Info message"),
@@ -1102,6 +1132,7 @@ class TestAndroid(BaseMobSFTest):
             "bundle_id": [FV("com.emptymalware.app")],
             "file_name": [FV("emptymalware.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],

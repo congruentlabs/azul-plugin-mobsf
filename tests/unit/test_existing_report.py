@@ -1,6 +1,6 @@
 from azul_runner import DATA_HASH, FV, Event, JobResult, State
 
-from .common import BaseMobSFTest, make_fake_apk
+from .common import MOBSF_FAKE_APK_RECORD_URL, BaseMobSFTest, make_fake_apk
 
 
 class TestExistingReport(BaseMobSFTest):
@@ -34,6 +34,7 @@ class TestExistingReport(BaseMobSFTest):
             "bundle_id": [FV("com.test.app")],
             "file_name": [FV("test.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],

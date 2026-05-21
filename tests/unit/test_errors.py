@@ -1,5 +1,4 @@
-import pytest
-from azul_runner import DATA_HASH, FV, Event, JobResult, State
+from azul_runner import DATA_HASH, JobResult, State
 
 from .common import BaseMobSFTest, make_fake_apk
 
@@ -132,8 +131,7 @@ class TestErrors(BaseMobSFTest):
             data_in=[("content", data)], config=self.PLUGIN_TO_TEST_CONFIG, no_multiprocessing=True
         )
 
-        # HTTP 500 raises an HTTPStatusError which is not caught by RequestError handler -> ERROR_EXCEPTION
-        assert result.state.label == State.Label.ERROR_EXCEPTION
+        assert result.state.label == State.Label.ERROR_NETWORK
 
     def test_http_404_error_on_report(self):
         # Mock initial check for existing report (404 = not found, continue to upload)
@@ -159,9 +157,20 @@ class TestErrors(BaseMobSFTest):
         result = self.do_execution(
             data_in=[("content", data)], config=self.PLUGIN_TO_TEST_CONFIG, no_multiprocessing=True
         )
-        # HTTP 404 raises an HTTPStatusError which is caught by RequestError handler -> ERROR_NETWORK
-        # Actually HTTPStatusError inherits from HTTPError not RequestError, so it becomes ERROR_EXCEPTION
+        assert result.state.label == State.Label.ERROR_NETWORK
+
+    def test_scan_logs_500_does_not_upload(self):
+        """A MobSF scan status failure should not be treated as an absent scan."""
+        self.httpx_mock.add_response(method="POST", url="http://localhost/api/v1/report_json", status_code=404)
+        self.httpx_mock.add_response(method="POST", url="http://localhost/api/v1/scan_logs", status_code=500)
+
+        data = make_fake_apk()
+        result = self.do_execution(
+            data_in=[("content", data)], config=self.PLUGIN_TO_TEST_CONFIG, no_multiprocessing=True
+        )
+
         assert result.state.label == State.Label.ERROR_EXCEPTION
+        assert not [request for request in self.httpx_mock.get_requests() if request.url.path == "/api/v1/upload"]
 
     def test_mobsf_json_error_response(self):
         self.httpx_mock.add_response(

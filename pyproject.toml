@@ -1,31 +1,145 @@
 [build-system]
-build-backend = "setuptools.build_meta"
-requires = [
-    "setuptools >= 64",
-    "setuptools_scm >= 8",
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "azul-plugin-mobsf"
+description = "Submit binaries to MobSF static and dynamic analysis"
+dynamic = ["version"]
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Azul" },
+]
+requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Security",
+]
+dependencies = [
+    "azul-bedrock>=10.0.45",
+    "azul-runner>=10.0.55",
+    "httpx>=0.28.1",
 ]
 
-[tool.black]
-line-length = 119
-target-version = ["py310"]
-exclude = '''
-(
-  /(
-      \.eggs
-    | \.git
-    | \.tox
-    | \.venv
-    | .*\.egg-info
-    | __pycache__
-    | build
-    | dist
-  )/
-)
-'''
+[project.scripts]
+azul-plugin-mobsf = "azul_plugin_mobsf.main:main"
 
-[tool.isort]
-profile = "black"
-multi_line_output = 3
+[project.urls]
+Documentation = "https://australiancybersecuritycentre.github.io/azul/"
+Repository = "https://github.com/AustralianCyberSecurityCentre/azul-plugin-mobsf"
+
+[tool.uv]
+package = true
+exclude-newer = "1 week"
+
+[dependency-groups]
+dev = [
+    "azul-runner[test-utils]>=10.0.55",
+    "cart>=1.2.3",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "pytest-httpx>=0.36.0",
+    "ruff>=0.15.8",
+    "tox>=4.34.1",
+    "tox-uv>=1.0",
+    "ty>=0.0.27",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+version_scheme = "only-version"
+
+[tool.hatch.version.fallback]
+version = "0.0.0"
+
+[tool.hatch.build.targets.wheel]
+packages = ["azul_plugin_mobsf"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/azul_plugin_mobsf",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+    "/debian.txt",
+    "/Dockerfile",
+    "/pyproject.toml",
+    "/requirements*.txt",
+    "/tox.ini",
+]
+
+[tool.ruff]
+line-length = 119
+indent-width = 4
+target-version = "py312"
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".env",
+    ".venv",
+    ".vscode",
+    "__pycache__",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+[tool.ruff.lint]
+select = [
+    "I",
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "B",
+    "D",
+    "S",
+]
+ignore = ["B008", "C901", "D104", "D107", "E203"]
+exclude = ["tests/*"]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = false
+docstring-code-line-length = "dynamic"
 
 [tool.cruft]
 skip = [
@@ -34,6 +148,3 @@ skip = [
     "azul_plugin_mobsf",
     "tests"
 ]
-
-[tool.setuptools_scm]
-version_scheme = "only-version"

@@ -1,0 +1,95 @@
+{
+  "activities": [
+    "com.panw.panwapktest.MainActivity"
+  ],
+  "android_api": {
+    "Local File I/O": {
+      "files": {
+        "MainActivity.java": {}
+      },
+      "metadata": {
+        "description": "Local File I/O Operations",
+        "severity": "info"
+      }
+    }
+  },
+  "apkid": {
+    "classes.dex": {
+      "compiler": [
+        "dx (possible dexmerge)"
+      ],
+      "manipulator": [
+        "dexmerge"
+      ]
+    }
+  },
+  "app_name": "PanwAPKTest",
+  "app_type": "apk",
+  "certificate_analysis": {
+    "certificate_findings": [
+      [
+        "info",
+        "Application is signed with a code signing certificate",
+        ""
+      ],
+      [
+        "warning",
+        "Application is signed with v1 signature scheme, making it vulnerable to Janus vulnerability on Android 5.0-8.0, if signed only with v1 signature scheme. Applications running on Android 5.0-7.0 signed with v1, and v2/v3 scheme is also vulnerable.",
+        ""
+      ],
+      [
+        "warning",
+        "Application is signed with SHA1withRSA. SHA1 hash algorithm is known to have collision issues. The manifest file indicates SHA256withRSA is in use.",
+        ""
+      ]
+    ]
+  },
+  "code_analysis": {
+    "findings": {
+      "debug_enabled": {
+        "metadata": {
+          "cvss": 5.4,
+          "cwe": "CWE-919: Weaknesses in Mobile Applications",
+          "description": "Debug configuration enabled. Production builds must not be debuggable.",
+          "severity": "high"
+        }
+      }
+    }
+  },
+  "file_name": "wildfire-test-apk-file.apk",
+  "main_activity": "com.panw.panwapktest.MainActivity",
+  "manifest_analysis": {
+    "manifest_findings": [
+      {
+        "description": "This application can be installed on an older version of android that has multiple unfixed vulnerabilities. These devices won't receive reasonable security updates from Google. Support an Android version => 10, API 29 to receive reasonable security updates.",
+        "severity": "high",
+        "title": "App can be installed on a vulnerable unpatched Android version Android 4.3-4.3.1, [minSdk=18]"
+      },
+      {
+        "description": "Debugging was enabled on the app which makes it easier for reverse engineers to hook a debugger to it. This allows dumping a stack trace and accessing debugging helper classes.",
+        "severity": "high",
+        "title": "Debug Enabled For App [android:debuggable=true]"
+      },
+      {
+        "description": "This flag allows anyone to backup your application data via adb. It allows users who have enabled USB debugging to copy application data off of the device.",
+        "severity": "warning",
+        "title": "Application Data can be Backed up [android:allowBackup=true]"
+      }
+    ],
+    "manifest_summary": {
+      "high": 2,
+      "info": 0,
+      "warning": 1
+    }
+  },
+  "min_sdk": "18",
+  "package_name": "com.panw.panwapktest",
+  "size": "1.38MB",
+  "target_sdk": "18",
+  "trackers": {
+    "detected_trackers": 0,
+    "total_trackers": 432
+  },
+  "version_code": "1",
+  "version_name": "1.0"
+}

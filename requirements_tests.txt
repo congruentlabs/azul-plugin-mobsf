@@ -1,4 +1,9 @@
-azul_runner[test_utils]
-cart
-pytest
-tox
+azul-runner[test-utils]>=10.0.55
+cart>=1.2.3
+pytest>=9.0.2
+pytest-cov>=7.0.0
+pytest-httpx>=0.36.0
+ruff>=0.15.8
+tox>=4.34.1
+tox-uv>=1.0
+ty>=0.0.27

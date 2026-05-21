@@ -1,8 +1,6 @@
 """Tests for scenarios where a task already exists in the MobSF queue."""
 
-import hashlib
-
-from azul_runner import DATA_HASH, State
+from azul_runner import State
 
 from .common import BaseMobSFTest, make_fake_apk, make_fake_ipa
 
@@ -83,8 +81,6 @@ class TestExistingTask(BaseMobSFTest):
         }
 
         data = make_fake_apk()
-        file_hash = hashlib.md5(data).hexdigest()  # MobSF uses MD5
-
         # 1. Check for existing report - none found yet
         self.httpx_mock.add_response(method="POST", url="http://localhost/api/v1/report_json", status_code=404)
 

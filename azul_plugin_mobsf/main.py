@@ -4,10 +4,10 @@ import logging
 import traceback
 
 import httpx
-from azul_bedrock.models_network import FeatureType
 from azul_runner import (
     BinaryPlugin,
     Feature,
+    FeatureType,
     Job,
     State,
     add_settings,
@@ -18,6 +18,18 @@ from .mobsf import MobSF, MobSFError
 
 (ftInt, ftFloat, ftStr) = (FeatureType.Integer, FeatureType.Float, FeatureType.String)
 logger = logging.getLogger(__name__)
+IOS_APP_TYPES = {"ipa", "ios", "swift", "objective-c", "objective_c"}
+
+
+def is_ios_report(mobsf_report: dict) -> bool:
+    """Return whether a MobSF report describes an iOS application."""
+    return mobsf_report.get("app_type", "").lower() in IOS_APP_TYPES
+
+
+def mobsf_record_url(base_url: str, file_hash: str, mobsf_report: dict) -> str:
+    """Return the MobSF static report URL for an analyzed app."""
+    report_path = "static_analyzer_ios" if is_ios_report(mobsf_report) else "static_analyzer"
+    return str(httpx.URL(base_url).join(f"/{report_path}/{file_hash}/"))
 
 
 class AzulPluginMobSF(BinaryPlugin):
@@ -38,7 +50,6 @@ class AzulPluginMobSF(BinaryPlugin):
         start_timeout=(int, 10 * 60),  # Report error if MobSF doesn't start running the sample within this time
         mobsf_server=(str, ""),  # URL of the MobSF server, eg http://localhost:8000
         mobsf_auth_token=(str, ""),  # Token for server auth
-        scanning_mode=(str, "STATIC"),  # STATIC or DYNAMIC
         poll_interval=(int, 15),  # Seconds to wait between polling of MobSF server for job status
         api_retry_count=(int, 3),  # How many times to retry API requests on timeout or temporary error
     )
@@ -48,6 +59,7 @@ class AzulPluginMobSF(BinaryPlugin):
         Feature("app_type", desc="Type of application (apk, ipa)", type=ftStr),
         Feature("file_name", desc="File name submitted to MobSF", type=ftStr),
         Feature("file_size", desc="Size of the analyzed file", type=ftStr),
+        Feature("mobsf_record_url", desc="URL to the MobSF static analysis record", type=ftStr),
         # Version information
         Feature(
             "version_name", desc="Application version name", type=ftStr
@@ -117,6 +129,9 @@ class AzulPluginMobSF(BinaryPlugin):
         """Run the plugin."""
         try:
             return self.execute_body(job)
+        except httpx.HTTPStatusError as exc:
+            message = f"MobSF HTTP error: {exc}"
+            return State(State.Label.ERROR_NETWORK, message, "".join(traceback.format_exc()))
         except httpx.RequestError as exc:
             # RequestError covers everything that could be due to network state,  such as timeouts,
             #  connection failures and protocol errors, but not response-code errors (eg 404, 500 etc)
@@ -143,9 +158,12 @@ class AzulPluginMobSF(BinaryPlugin):
         self.add_feature_values("app_type", [mobsf_report.get("app_type", "")])
         self.add_feature_values("file_name", [mobsf_report.get("file_name", "")])
         self.add_feature_values("file_size", [mobsf_report.get("size", "")])
+        self.add_feature_values(
+            "mobsf_record_url", [mobsf_record_url(self.cfg.mobsf_server, job.event.entity.md5, mobsf_report)]
+        )
 
         # Version information - platform specific
-        if mobsf_report.get("app_type", "").lower() == "swift":
+        if is_ios_report(mobsf_report):
             # iOS version handling
             self.add_feature_values("version_name", [mobsf_report.get("app_version", "")])
             self.add_feature_values("version_code", [mobsf_report.get("build", "")])
@@ -168,8 +186,9 @@ class AzulPluginMobSF(BinaryPlugin):
             # Android-specific components
             if mobsf_report.get("main_activity"):
                 self.add_feature_values("main_activity", [mobsf_report["main_activity"]])
-            if "activities" in mobsf_report:
-                self.add_feature_values("activities", mobsf_report["activities"])
+            for feature_name in ("activities", "services", "receivers", "providers"):
+                if feature_name in mobsf_report:
+                    self.add_feature_values(feature_name, mobsf_report[feature_name])
 
         # Extract exported activities (handle both string and list formats)
         exported = mobsf_report.get("exported_activities", "[]")
@@ -182,7 +201,7 @@ class AzulPluginMobSF(BinaryPlugin):
 
         # Extract permissions - platform specific
         perm_details = []
-        if mobsf_report.get("app_type", "").lower() == "swift":
+        if is_ios_report(mobsf_report):
             # iOS permissions from findings
             if "findings" in mobsf_report:
                 for finding in mobsf_report["findings"]:
@@ -233,7 +252,7 @@ class AzulPluginMobSF(BinaryPlugin):
         # Extract manifest/info.plist analysis findings
         findings = []
 
-        if mobsf_report.get("app_type", "").lower() == "swift":
+        if is_ios_report(mobsf_report):
             # iOS findings
             if "findings" in mobsf_report:
                 for finding in mobsf_report["findings"]:

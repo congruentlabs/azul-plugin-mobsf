@@ -15,7 +15,7 @@ Required configuration:
 - `mobsf_auth_token`: API authentication token
 
 Optional configuration:
-- `request_timeout`: HTTP request timeout (default: 60)
+- `request_timeout`: HTTP request timeout (default: 30)
 - `api_retry_count`: Number of retries on API errors (default: 3)
-- `start_timeout`: Maximum time to wait for scan to start (default: 300)
+- `start_timeout`: Maximum time to wait for scan to complete (default: 600)
 - `poll_interval`: Polling interval for task status (default: 15)

@@ -1,0 +1,32 @@
+{
+  "app_name": "EroEroMovie",
+  "app_type": "Swift",
+  "app_version": "1.0",
+  "build": "1",
+  "bundle_id": "s.EroEroMovie",
+  "domains": {
+    "ocsp.apple.com": {
+      "geolocation": {
+        "city": "Sydney",
+        "country_long": "Australia"
+      },
+      "ofac": false
+    },
+    "www.apple.com": {
+      "geolocation": {
+        "city": "Seoul",
+        "country_long": "Korea (Republic of)"
+      },
+      "ofac": false
+    }
+  },
+  "file_name": "a42db180958b17edff843dd8893f4caac6b754b7f8f80d24fd9a685a32dcf34d.ipa",
+  "min_os_version": "8.1",
+  "platform": "8.1",
+  "sdk_name": "iphoneos8.1",
+  "size": "4.46MB",
+  "trackers": {
+    "detected_trackers": 0,
+    "total_trackers": 432
+  }
+}

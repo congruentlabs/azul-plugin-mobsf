@@ -1,7 +1,15 @@
-import pytest
-from azul_runner import DATA_HASH, FV, Event, JobResult, State
+from hashlib import md5
 
-from .common import BaseMobSFTest, load_test_file, make_fake_apk
+from azul_bedrock.models_network import FeatureType
+from azul_runner import APIFeatureValue, DATA_HASH, FV, Event, JobResult, State
+
+from .common import (
+    MOBSF_FAKE_APK_RECORD_URL,
+    MOBSF_FAKE_IPA_RECORD_URL,
+    BaseMobSFTest,
+    load_test_file,
+    make_fake_apk,
+)
 
 
 class TestConfig(BaseMobSFTest):
@@ -30,6 +38,7 @@ class TestConfig(BaseMobSFTest):
 
         data = make_fake_apk()
         file_hash = DATA_HASH(data).hexdigest()
+        mobsf_hash = md5(data).hexdigest()
 
         self.httpx_mock.add_response(method="POST", url="http://localhost/api/v1/report_json", status_code=404)
         self.httpx_mock.add_response(method="POST", url="http://localhost/api/v1/scan_logs", status_code=400)
@@ -55,6 +64,7 @@ class TestConfig(BaseMobSFTest):
             "bundle_id": [FV("com.minimal.app")],
             "file_name": [FV("minimal.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(f"http://localhost/static_analyzer/{mobsf_hash}/")],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],
@@ -128,7 +138,7 @@ class TestConfig(BaseMobSFTest):
             "target_sdk": "30",
         }
 
-        data = load_test_file("sample_apk_no_ext")
+        data = make_fake_apk()
         file_hash = DATA_HASH(data).hexdigest()
 
         self.httpx_mock.add_response(method="POST", url="http://localhost/api/v1/report_json", status_code=404)
@@ -148,9 +158,14 @@ class TestConfig(BaseMobSFTest):
 
         result = self.do_execution(
             data_in=[("content", data)],
+            feats_in=[APIFeatureValue(name="filename", type=FeatureType.String, value="sample_apk_no_ext")],
             config=self.PLUGIN_TO_TEST_CONFIG,
             no_multiprocessing=True,
         )
+        upload_request = [
+            request for request in self.httpx_mock.get_requests() if request.url.path == "/api/v1/upload"
+        ][0]
+        assert b'filename="sample_apk_no_ext.apk"' in upload_request.content
 
         expected_features = {
             "app_name": [FV("TestApp")],
@@ -158,6 +173,7 @@ class TestConfig(BaseMobSFTest):
             "bundle_id": [FV("com.test.app")],
             "file_name": [FV("sample_apk_no_ext.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],
@@ -206,9 +222,14 @@ class TestConfig(BaseMobSFTest):
 
         result = self.do_execution(
             data_in=[("content", data)],
+            feats_in=[APIFeatureValue(name="filename", type=FeatureType.String, value="sample_ipa_no_ext")],
             config=self.PLUGIN_TO_TEST_CONFIG,
             no_multiprocessing=True,
         )
+        upload_request = [
+            request for request in self.httpx_mock.get_requests() if request.url.path == "/api/v1/upload"
+        ][0]
+        assert b'filename="sample_ipa_no_ext.ipa"' in upload_request.content
 
         expected_features = {
             "app_name": [FV("TestApp")],
@@ -216,6 +237,7 @@ class TestConfig(BaseMobSFTest):
             "bundle_id": [FV("")],
             "file_name": [FV("sample_ipa_no_ext.apk")],
             "file_size": [FV("2MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_IPA_RECORD_URL)],
             "min_version": [FV("")],
             "sdk_name": [FV("")],
             "target_version": [FV("")],
@@ -245,7 +267,7 @@ class TestConfig(BaseMobSFTest):
             "target_sdk": "30",
         }
 
-        data = load_test_file("sample_apk_invalid_ext.txt")
+        data = make_fake_apk()
         file_hash = DATA_HASH(data).hexdigest()
 
         self.httpx_mock.add_response(method="POST", url="http://localhost/api/v1/report_json", status_code=404)
@@ -265,9 +287,14 @@ class TestConfig(BaseMobSFTest):
 
         result = self.do_execution(
             data_in=[("content", data)],
+            feats_in=[APIFeatureValue(name="filename", type=FeatureType.String, value="sample_apk_invalid_ext.txt")],
             config=self.PLUGIN_TO_TEST_CONFIG,
             no_multiprocessing=True,
         )
+        upload_request = [
+            request for request in self.httpx_mock.get_requests() if request.url.path == "/api/v1/upload"
+        ][0]
+        assert b'filename="sample_apk_invalid_ext.txt.apk"' in upload_request.content
 
         expected_features = {
             "app_name": [FV("TestApp")],
@@ -275,6 +302,7 @@ class TestConfig(BaseMobSFTest):
             "bundle_id": [FV("com.test.app")],
             "file_name": [FV("sample_apk_invalid_ext.txt.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],
@@ -303,7 +331,7 @@ class TestConfig(BaseMobSFTest):
             "target_sdk": "30",
         }
 
-        data = load_test_file("sample_apk_no_ext")
+        data = make_fake_apk()
         file_hash = DATA_HASH(data).hexdigest()
 
         self.httpx_mock.add_response(method="POST", url="http://localhost/api/v1/report_json", status_code=404)
@@ -333,6 +361,7 @@ class TestConfig(BaseMobSFTest):
             "bundle_id": [FV("com.test.app")],
             "file_name": [FV("sample_apk_no_ext.apk")],
             "file_size": [FV("1MB")],
+            "mobsf_record_url": [FV(MOBSF_FAKE_APK_RECORD_URL)],
             "min_version": [FV("21")],
             "target_version": [FV("30")],
             "version_code": [FV("1")],

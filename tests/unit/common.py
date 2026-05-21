@@ -2,9 +2,12 @@ import json
 from pathlib import Path
 
 import pytest
-from azul_runner import test_template
+from azul_runner.test_utils import TestPlugin
 
 from azul_plugin_mobsf.main import AzulPluginMobSF
+
+MOBSF_FAKE_APK_RECORD_URL = "http://localhost/static_analyzer/1a35625d1c62d206452e4874f1f6d5f2/"
+MOBSF_FAKE_IPA_RECORD_URL = "http://localhost/static_analyzer_ios/cf76babb14da1f88ed1fac48d4eff800/"
 
 
 # The sample json reports are from actual malicious binaries that have been uploaded into mobsf, and the reports pulled via
@@ -35,7 +38,7 @@ def make_fake_ipa():
     return load_test_file("sample.ipa")
 
 
-class BaseMobSFTest(test_template.TestPlugin):
+class BaseMobSFTest(TestPlugin):
     PLUGIN_TO_TEST = AzulPluginMobSF
     PLUGIN_TO_TEST_CONFIG = {
         "mobsf_server": "http://localhost",
